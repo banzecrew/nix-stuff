@@ -22,7 +22,7 @@ stdenv.mkDerivation rec {
   
   phases = [ "unpackPhase" "installPhase" ];
 
-  inputs = [ (if "{$mode}" == "web" then postgresql else "") ];
+  inputs = [ (if "${mode}" == "web" then postgresql else "") ];
   
   installPhase = ''
     ${coreutils}/bin/cp -rva . $out
