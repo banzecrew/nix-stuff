@@ -2367,19 +2367,17 @@ in
 
       environment = {
 
-      } // (if
-              cfg.mode == "web"
+      } // (if cfg.mode == "web"
             then
               mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) envOptions.web
-            else if
-              cfg.mode == "worker"
+            else if cfg.mode == "worker"
             then
               mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) envOptions.worker
-            else if
-              cfg.mode == "quickstart"
+            else if cfg.mode == "quickstart"
             then
               (mapAttrs' (n: v: nameValuePair "CONCOURSE_WORKER_${n}" (toString v)) (envOptions.worker)) // envOptions.web
-            else ""
+            else 
+               ""
            );
 
       script = ''
