@@ -5,10 +5,8 @@ with lib;
 
 
 let
-  web = callPackage ./web-interface.nix { };
-  worker = callPackage ./worker-interface.nix { };
-  env = callPackage ./environment.nix { };
-
+  cfg = config.services.concourse;
+  e = callPackage ./environment.nix { };
 
 in
 
@@ -57,13 +55,13 @@ in
 
       } // (if cfg.mode == "web"
             then
-              mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) web.envOptions.web
+              mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) e.envOptions.web
             else if cfg.mode == "worker"
             then
-              mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) worker.envOptions.worker
+              mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) e.envOptions.worker
             else if cfg.mode == "quickstart"
             then
-              (mapAttrs' (n: v: nameValuePair "CONCOURSE_WORKER_${n}" (toString v)) (worker.envOptions.worker)) // web.envOptions.web
+              (mapAttrs' (n: v: nameValuePair "CONCOURSE_WORKER_${n}" (toString v)) (e.envOptions.worker)) // e.envOptions.web
             else 
                ""
            );
