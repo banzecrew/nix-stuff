@@ -31,9 +31,11 @@ stdenv.mkDerivation rec {
     for item in `${coreutils}/bin/ls ./bin/` ; do
       ${patchelf}/bin/patchelf --set-interpreter $(${coreutils}/bin/cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
     done
-    
-    ${gnutar}/bin/mkdir -p /var
   '';
+
+    postInstall = ''
+      
+    '';
 
 
   meta = with stdenv.lib; {
