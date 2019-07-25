@@ -1,4 +1,7 @@
-{ config }:
+{ config, lib }:
+
+
+with lib;
 
 
 let
@@ -304,4 +307,4 @@ let
     };
   };
 
-in envOptions;
+in envOptions
