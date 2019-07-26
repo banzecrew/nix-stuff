@@ -35,7 +35,6 @@ stdenv.mkDerivation rec {
     ${gnutar}/bin/mkdir -p /var
   '';
 
-
   meta = with stdenv.lib; {
     description = "Concourse is a pipeline-based continuous thing-doer.";
     homepage = "https://concourse-ci.org/";

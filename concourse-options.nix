@@ -5,8 +5,8 @@ with lib;
 
 
 let
-  cfg = config.services.concourse;
-  
+  cfg = config.services.concourse; 
+
   envOptions = {
     web = {
       PEER_ADDRESS = cfg.web.peerAddress;
@@ -307,6 +307,25 @@ let
     };
   };
 
+  webAllowedPorts = with cfg.web; [ 
+    bindPort
+    tlsBindPort
+    debugBindPort
+    metrics.agentPort
+    metrics.prometheus.bindPort
+    metrics.riemann.port
+    tsaBindPort
+    tsaDebugBindPort
+  ];
+  workerAllowedPorts = with cfg.worker [
+    bindPortport
+    debugBinport
+    healthchport
+    baggageclaim.bindPortport
+    baggageclaim.debugBindPort
+  ];
+
+
 
 in
 
@@ -331,10 +350,19 @@ in
         default = pkgs.concourse;
         description = "Package to use.";
       };
+
+      openFirewall = mkOption {
+        type = bool;
+        default = true;
+        description = ''
+          Open ports in the firewall for the Concourse web/worker.
+        '';
+      };
       
       # part of server interface
         
       web = with types; {
+
         peerAddress = mkOption {
           type = str;
           default = "127.0.0.1";
@@ -362,13 +390,13 @@ in
         };
 
         bindPort = mkOption {
-          type = str;
-          default = "8080";
+          type = int;
+          default = 8080;
           description = "Port on which to listen for HTTP traffic.";
         };
 
         tlsBindPort = mkOption {
-          type = str;
+          type = int;
           description = "Port on which to listen for HTTPS traffic.";
         };
 
@@ -416,8 +444,8 @@ in
         };
 
         debugBindPort = mkOption {
-          type = str;
-          default = "8079";
+          type = int;
+          default = 8079;
           description = "Port on which to listen for the pprof debugger endpoints.";
         };
 
@@ -644,8 +672,8 @@ in
           };
  
           tsaBindPort = mkOption {
-            type = str;
-            default = "2222";
+            type = int;
+            default = 2222;
             description = "Port on which to listen for SSH.";
           };
 
@@ -658,8 +686,8 @@ in
           };
 
           tsaDebugBindPort = mkOption {
-            type = str;
-            default = "2221";
+            type = int;
+            default = 2221;
             description = ''
               Port on which to listen for the pprof debugger endpoints.
             '';
@@ -734,8 +762,8 @@ in
           };
 
           pgPort = mkOption {
-            type = str;
-            default = "5432";
+            type = int;
+            default = 5432;
             description = "The port to connect to.";
           };
 
@@ -1204,7 +1232,7 @@ in
             };
 
             agentPort = mkOption {
-              type = str;
+              type = int;
               description = ''
                 Datadog agent port to expose dogstatsd metrics.
               '';
@@ -2349,6 +2377,14 @@ in
   };
 
   config = mkIf cfg.enable {
+
+    networking.firewall = mkIf cfg.openFirewall {
+      allowedTCPPorts = flatten (
+        (optional (cfg.mode == "web") webAllowedPorts)
+        (optional (cfg.mode == "worker") workerAllowedPorts)
+        (optional (cfg.mode == "quickstart") (webAllowedPorts ++ workerAllowedPorts))
+      )
+    };
 
     environment.systemPackages = [ cfg.package ];
 
