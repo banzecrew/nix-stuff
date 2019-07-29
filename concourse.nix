@@ -25,14 +25,14 @@ stdenv.mkDerivation rec {
   inputs = [ (if "${mode}" == "web" then postgresql else "") ];
   
   installPhase = ''
-    ${coreutils}/bin/cp -rva . $out
-    ${gnutar}/bin/tar -zxf $out/fly-assets/fly-${platform}.tgz -C $out/bin
+    cp -rva . $out
+    tar -zxf $out/fly-assets/fly-${platform}.tgz -C $out/bin
 
-    for item in `${coreutils}/bin/ls ./bin/` ; do
-      ${patchelf}/bin/patchelf --set-interpreter $(${coreutils}/bin/cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
+    for item in `ls ./bin/` ; do
+      patchelf --set-interpreter $(cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
     done
     
-    ${gnutar}/bin/mkdir -p /var
+    mkdir -p /var
   '';
 
   meta = with stdenv.lib; {

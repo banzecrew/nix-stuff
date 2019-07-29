@@ -49,7 +49,7 @@ let
 
       ENABLE_LETS_ENCRYPT = boolToString cfg.web.encrypt.enableLetsEncrypt;
       LETS_ENCRYPT_ACME_URL = cfg.web.encrypt.letsEncryptAcmeUrl;
-
+      
       POSTGRES_HOST = cfg.web.postgresql.pgHost;
       POSTGRES_PORT = cfg.web.postgresql.pgPort;
       POSTGRES_SOCKET = cfg.web.postgresql.pgSocket;
@@ -310,20 +310,13 @@ let
   webAllowedPorts = with cfg.web; [ 
     bindPort
     tlsBindPort
-    debugBindPort
-    metrics.agentPort
-    metrics.prometheus.bindPort
-    metrics.riemann.port
     tsa.bindPort
-    tsa.debugBindPort
   ];
 
   workerAllowedPorts = with cfg.worker; [
     bindPort
-    debugBindPort
     healthcheckBindPort
     baggageclaim.bindPort
-    baggageclaim.debugBindPort
   ];
 
 
@@ -340,9 +333,17 @@ in
       };
 
       mode = mkOption {
-        type = types.enum [ "web" "worker" "quickstart" ];
+        type = types.enum [
+          "web"
+          "worker"
+          "quickstart"
+          "land-worker"
+          "retire-worker"
+        ];
         default = "web";
-        description = "Sets Concourse working mode.";
+        description = ''
+          Sets Concourse working mode.
+        '';
       };
 
       package = mkOption {
@@ -2414,7 +2415,6 @@ in
   };
 
   config = mkIf cfg.enable {
-
     networking.firewall = mkIf cfg.openFirewall {
       allowedTCPPorts = flatten (
         (optional (cfg.mode == "web") webAllowedPorts)
@@ -2443,21 +2443,18 @@ in
       } // (if cfg.mode == "web"
             then
               mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) envOptions.web
-            else if cfg.mode == "worker"
+            else if (cfg.mode == "worker" || cfg.mode == "land-worker" || cfg.mode == "retire-worker")
             then
               mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) envOptions.worker
-            else if cfg.mode == "quickstart"
-            then
-              (mapAttrs' (n: v: nameValuePair "CONCOURSE_WORKER_${n}" (toString v)) (envOptions.worker)) // envOptions.web
             else 
-               ""
+              (mapAttrs' (n: v: nameValuePair "CONCOURSE_WORKER_${n}" (toString v)) (envOptions.worker)) // envOptions.web
            );
 
       script = ''
         ${optionalString cfg.web.generateKeys ''
           exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
           exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
-          touch ${cfg.web.tsa.authorizedKeys}
+          touch "${cfg.web.tsa.authorizedKeys}"
         ''}
         ${optionalString cfg.worker.generateKeys ''
           exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.worker.tsa.workerPrivateKey}
