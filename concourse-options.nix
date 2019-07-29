@@ -247,18 +247,18 @@ let
       OIDC_CA_CERT = cfg.web.authentication.oidc.caCert;
       OIDC_SKIP_SSL_VALIDATION = cfg.web.authentication.oidc.skipSslValidation;
 
-      TSA_LOG_LEVEL = cfg.web.tsaLogLevel;
-      TSA_BIND_IP = cfg.web.tsaBindIp;
-      TSA_PEER_ADDRESS = cfg.web.tsaPeerAddress;
-      TSA_BIND_PORT = cfg.web.tsaBindPort;
-      TSA_DEBUG_BIND_IP = cfg.web.tsaDebugBindIp;
-      TSA_DEBUG_BIND_PORT = cfg.web.tsaDebugBindPort;
-      TSA_HOST_KEY = cfg.web.tsaHostKey;
-      TSA_AUTHORIZED_KEYS = cfg.web.tsaAuthorizedKeys;
-      TSA_TEAM_AUTHORIZED_KEYS = cfg.web.tsaTeamAuthorizedKeys;
-      TSA_ATC_URL = cfg.web.tsaAtcUrl;
-      TSA_SESSION_SIGNING_KEY = cfg.web.tsaSessionSigningKey;
-      TSA_HEARTBEAT_INTERVAL = cfg.web.tsaHeartBeatInterval;
+      TSA_LOG_LEVEL = cfg.web.tsa.logLevel;
+      TSA_BIND_IP = cfg.web.tsa.bindIp;
+      TSA_PEER_ADDRESS = cfg.web.tsa.peerAddress;
+      TSA_BIND_PORT = cfg.web.tsa.bindPort;
+      TSA_DEBUG_BIND_IP = cfg.web.tsa.debugBindIp;
+      TSA_DEBUG_BIND_PORT = cfg.web.tsa.debugBindPort;
+      TSA_HOST_KEY = cfg.web.tsa.hostKey;
+      TSA_AUTHORIZED_KEYS = cfg.web.tsa.authorizedKeys;
+      TSA_TEAM_AUTHORIZED_KEYS = cfg.web.tsa.teamAuthorizedKeys;
+      TSA_ATC_URL = cfg.web.tsa.atcUrl;
+      TSA_SESSION_SIGNING_KEY = cfg.web.tsa.sessionSigningKey;
+      TSA_HEARTBEAT_INTERVAL = cfg.web.tsa.heartBeatInterval;
     };
 
     worker = {
@@ -284,9 +284,9 @@ let
       RESOURCE_TYPES = cfg.worker.resourceTypes;
       LOG_LEVEL = cfg.worker.logLevel;
 
-      TSA_HOST = cfg.worker.tsaHost;
-      TSA_PUBLIC_KEY = cfg.worker.tsaPublicKey;
-      TSA_WORKER_PRIVATE_KEY = cfg.worker.tsaWorkerPrivateKey;
+      TSA_HOST = cfg.worker.tsa.host;
+      TSA_PUBLIC_KEY = cfg.worker.tsa.publicKey;
+      TSA_WORKER_PRIVATE_KEY = cfg.worker.tsa.workerPrivateKey;
 
       GARDEN_USE_HOUDINI = cfg.worker.useHoudini;
       GARDEN_BIN = cfg.worker.gardenBin;
@@ -317,6 +317,7 @@ let
     tsaBindPort
     tsaDebugBindPort
   ];
+
   workerAllowedPorts = with cfg.worker [
     bindPortport
     debugBinport
@@ -362,6 +363,17 @@ in
       # part of server interface
         
       web = with types; {
+        generateKeys = mkOption {
+          type = bool;
+          default = false;
+          description = "Generate SSH/RSA keys";
+        };
+
+        keysDir = mkOption {
+          type = str;
+          default = "/var/lib/concourse/web/keys/";
+          description = "Directory in which keys will be stored.";
+        };
 
         peerAddress = mkOption {
           type = str;
@@ -370,7 +382,7 @@ in
             Network address of this web node, reachable by other web nodes. 
             Used for forwarded worker addresses.
           '';                  
-          };
+        };
 
         logLevel = mkOption {
           type = enum [
@@ -402,11 +414,13 @@ in
 
         tlsCert = mkOption {
           type = path;
+          default = "";
           description = "File containing an SSL certificate.";
         };
 
         tlsKey = mkOption {
           type = path;
+          default = "";
           description = ''
             File containing an RSA private key, 
             used to encrypt HTTPS traffic.
@@ -420,6 +434,7 @@ in
 
         encryptionKey = mkOption {
           type = str;
+          default = "";
           description = ''
             A 16 or 32 length key used to encrypt sensitive information
             before storing it in the database
@@ -428,6 +443,7 @@ in
          
         oldEncryptionKey = mkOption {
           type = str;
+          default = "";
           description = ''
             Encryption key previously used for encrypting sensitive information. 
             If provided without a new key, data is encrypted. 
@@ -645,7 +661,7 @@ in
         };
 
         tsa = {
-          tsaLogLevel = mkOption {
+          logLevel = mkOption {
             type = enum [ 
               "debug"
               "info"
@@ -656,13 +672,13 @@ in
             description = "Minimum level of logs to see.";
           };
 
-          tsaBindIp = mkOption {
+          bindIp = mkOption {
             type = str;
             default = "0.0.0.0";
             description = "IP address on which to listen for SSH.";
           };
 
-          tsaPeerAddress = mkOption {
+          peerAddress = mkOption {
             type = str;
             default = "127.0.0.1";
             description = ''
@@ -671,13 +687,13 @@ in
             '';
           };
  
-          tsaBindPort = mkOption {
+          bindPort = mkOption {
             type = int;
             default = 2222;
             description = "Port on which to listen for SSH.";
           };
 
-          tsaDebugBindIp = mkOption {
+          debugBindIp = mkOption {
             type = str;
             default = "127.0.0.1";
             description = ''
@@ -685,7 +701,7 @@ in
             '';
           };
 
-          tsaDebugBindPort = mkOption {
+          debugBindPort = mkOption {
             type = int;
             default = 2221;
             description = ''
@@ -693,43 +709,47 @@ in
             '';
           };
 
-          tsaHostKey = mkOption {
-            type = path;
+          hostKey = mkOption {
+            type = str;
+            default = cfg.web.keysDir + "tsa_host_key";
             description = "Path to private key to use for the SSH server.";
           };
 
-          tsaAuthorizedKeys = mkOption {
-            type = path;
+          authorizedKeys = mkOption {
+            type = str;
+            default = cfg.web.keysDir + "authorized_worker_keys";
             description = ''
               Path to file containing keys to authorize, 
-              in SSH authorized_keys format 
+              in SSH authorized_keys format.
+              !!!All working keys must be added to this file!!!
             '';
           };
 
-          tsaTeamAuthorizedKeys = mkOption {
-            type = str;
+          teamAuthorizedKeys = mkOption {
+            type = path;
             description = ''
               Path to file containing keys to authorize,
               in SSH authorized_keys format (one public key per line).
             '';
           };
  
-          tsaAtcUrl = mkOption {
+          atcUrl = mkOption {
             type = str;
             description = ''
               ATC API endpoints to which workers will be registered.
             '';
           }; 
 
-          tsaSessionSigningKey = mkOption {
-            type = string;
+          sessionSigningKey = mkOption {
+            type = path;
+            default = "";
             description = ''
               Path to private key to use when signing tokens
               in reqests to the ATC during registration.
             '';
           };
 
-          tsaHeartBeatInterval = mkOption {
+          heartBeatInterval = mkOption {
             type = str;
             default = "30s";
             description = "interval on which to heartbeat workers to the ATC";
@@ -1478,6 +1498,7 @@ in
 
           sessionSignKey = mkOption {
             type = path;
+            default = cfg.web.keysDir + "session_signing_key";
             description = ''
               File containing an RSA private key, used to sign auth tokens.
             '';
@@ -2064,6 +2085,18 @@ in
       # part of worker interface
 
       worker = with types; {
+        generateKeys = mkOption {
+          type = bool;
+          default = false;
+          description = "Generate SSH keys.";
+        };
+
+        keysDir = mkOption {
+          type = str;
+          default = "/var/lib/concourse/worker/keys/";
+          description = "Directory in which keys will be stored.";
+        };
+
         name = mkOption {
           type = str;
           description = ''
@@ -2075,7 +2108,10 @@ in
         tag = mkOption {
           type = str;
           example = "tag-1,tag-2";
-          description = "A tag to set during registration. Can be specified multiple times.";
+          description = ''
+            A tag to set during registration.
+            Can be specified multiple times.
+          '';
         };
 
         team = mkOption {
@@ -2125,8 +2161,8 @@ in
         };
 
         bindPort = mkOption {
-          type = str;
-          default = "7777";
+          type = int;
+          default = 7777;
           description = "Port on which to listen for the Garden server.";
         };
 
@@ -2139,8 +2175,8 @@ in
         };
 
         debugBindPort = mkOption {
-          type = str;
-          default = "7776";
+          type = int;
+          default = 7776;
           description = "Port on which to listen for the pprof debugger endpoints.";
         };
 
@@ -2151,8 +2187,8 @@ in
         };
 
         healthcheckBindPort = mkOption {
-          type = str;
-          default = "8888";
+          type = int;
+          default = 8888;
           description = "Port on which to listen for health checking requests.";
         };
 
@@ -2232,7 +2268,7 @@ in
         };
 
         tsa = {
-          tsaHost = mkOption {
+          host = mkOption {
             type = str;
             default = "127.0.0.1:2222";
             description = ''
@@ -2241,15 +2277,17 @@ in
             '';
           };
 
-          tsaPublicKey = mkOption {
-            type = path;
+          publicKey = mkOption {
+            type = str;
+            default = cfg.worker.keysDir + "tsa_host_key.pub";
             description = ''
               File containing a public key to expect from the TSA.
             '';
           };
 
-          tsaWorkerPrivateKey = mkOption {
-            type = path;
+          workerPrivateKey = mkOption {
+            type = str;
+            default = cfg.worker.keysDir + "worker_key";
             description = ''
               File containing the private key to use when authenticating to the TSA.
             '';
@@ -2302,8 +2340,8 @@ in
           };
 
           bindPort = mkOption {
-            type = str;
-            default = "7788";
+            type = int;
+            default = 7788;
             description = ''
               Port on which to listen for API traffic.
             '';
@@ -2318,8 +2356,8 @@ in
           };
 
           debugBindPort = mkOption {
-            type = str;
-            default = "7787";
+            type = int;
+            default = 7787;
             description = ''
               Port on which to listen for the pprof debugger endpoints.
             '';
@@ -2417,6 +2455,14 @@ in
            );
 
       script = ''
+        optionalString (cfg.web.generateKeys) ''
+          exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
+          exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
+          touch ${cfg.web.keysDir}
+        ''
+        optionalString (cfg.worker.generateKeys) ''
+          exec ${cfg.package}/bin/concourse generate-key -t ssh -f {cfg.worker.tsa.workerPrivateKey}
+        ''
         exec ${cfg.package}/bin/concourse ${cfg.mode}
       '';
     };
