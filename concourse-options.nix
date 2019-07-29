@@ -319,10 +319,10 @@ let
   ];
 
   workerAllowedPorts = with cfg.worker; [
-    bindPortport
-    debugBinport
-    healthchport
-    baggageclaim.bindPortport
+    bindPort
+    debugBindPort
+    healthcheckBindPort
+    baggageclaim.bindPort
     baggageclaim.debugBindPort
   ];
 
@@ -720,7 +720,7 @@ in
             description = ''
               Path to file containing keys to authorize, 
               in SSH authorized_keys format.
-              !!!All working keys must be added to this file!!!
+              !!! All working keys must be added to this file !!!
             '';
           };
 
