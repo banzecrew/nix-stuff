@@ -306,7 +306,7 @@ let
       BAGGAGECLAIM_DISABLE_USER_NAMESPACES = boolToString cfg.worker.baggageclaim.disableUserNamespaces;
     };
   };
-/*
+
   webAllowedPorts = with cfg.web; [ 
     bindPort
     tlsBindPort
@@ -314,11 +314,11 @@ let
     metrics.agentPort
     metrics.prometheus.bindPort
     metrics.riemann.port
-    tsaBindPort
-    tsaDebugBindPort
+    tsa.bindPort
+    tsa.debugBindPort
   ];
 
-  workerAllowedPorts = with cfg.worker [
+  workerAllowedPorts = with cfg.worker; [
     bindPortport
     debugBinport
     healthchport
@@ -326,7 +326,6 @@ let
     baggageclaim.debugBindPort
   ];
 
-*/
 
 in
 
