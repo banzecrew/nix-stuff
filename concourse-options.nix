@@ -5,7 +5,7 @@ with lib;
 
 
 let
-  cfg = config.services.concourse; 
+  cfg = config.services.concourse;
 
   envOptions = {
     web = {
@@ -306,7 +306,7 @@ let
       BAGGAGECLAIM_DISABLE_USER_NAMESPACES = boolToString cfg.worker.baggageclaim.disableUserNamespaces;
     };
   };
-
+/*
   webAllowedPorts = with cfg.web; [ 
     bindPort
     tlsBindPort
@@ -326,7 +326,7 @@ let
     baggageclaim.debugBindPort
   ];
 
-
+*/
 
 in
 
@@ -2308,7 +2308,7 @@ in
           };
 
           gardenConfig = mkOption {
-            type = lines;
+            type = str;
             description = "Path to a config file to use for Garden.";
           };
 
@@ -2421,7 +2421,7 @@ in
         (optional (cfg.mode == "web") webAllowedPorts)
         (optional (cfg.mode == "worker") workerAllowedPorts)
         (optional (cfg.mode == "quickstart") (webAllowedPorts ++ workerAllowedPorts))
-      )
+      );
     };
 
     environment.systemPackages = [ cfg.package ];
@@ -2455,14 +2455,14 @@ in
            );
 
       script = ''
-        optionalString (cfg.web.generateKeys) ''
+        ${optionalString cfg.web.generateKeys ''
           exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
           exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
-          touch ${cfg.web.keysDir}
-        ''
-        optionalString (cfg.worker.generateKeys) ''
-          exec ${cfg.package}/bin/concourse generate-key -t ssh -f {cfg.worker.tsa.workerPrivateKey}
-        ''
+          touch ${cfg.web.tsa.authorizedKeys}
+        ''}
+        ${optionalString cfg.worker.generateKeys ''
+          exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.worker.tsa.workerPrivateKey}
+        ''}
         exec ${cfg.package}/bin/concourse ${cfg.mode}
       '';
     };
