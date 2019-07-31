@@ -6,8 +6,12 @@
   mode ? "web"
 }:
 
-
 with pkgs;
+
+let
+  
+
+in
 
 
 stdenv.mkDerivation rec {
@@ -22,8 +26,9 @@ stdenv.mkDerivation rec {
   
   phases = [ "unpackPhase" "installPhase" ];
 
-  inputs = [ (if "${mode}" == "web" then postgresql else "") ];
+  inputs = lib.optional (mode == "web" || mode == "quickstart") postgresql;
   
+
   installPhase = ''
     cp -rva . $out
     tar -zxf $out/fly-assets/fly-${platform}.tgz -C $out/bin
@@ -32,7 +37,7 @@ stdenv.mkDerivation rec {
       patchelf --set-interpreter $(cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
     done
     
-    mkdir -p /var
+    mkdir -p /var/lib/concourse
   '';
 
   meta = with stdenv.lib; {

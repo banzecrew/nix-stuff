@@ -1,11 +1,10 @@
 { config, lib, pkgs, ... }:
 
-
 with lib;
-
 
 let
   cfg = config.services.concourse;
+  mode = cfg.mode;
 
   envOptions = {
     web = {
@@ -2430,8 +2429,8 @@ in
       wantedBy = ["multi-user.target"];
       
       requires = [(
-        if cfg.mode == "worker" then ""
-        else "postgresql.service"
+        if cfg.mode == "web" || cfg.mode == "quickstart"
+        then "postgresql.service" else ""
       )];
 
       after = [
@@ -2454,7 +2453,7 @@ in
         ${optionalString cfg.web.generateKeys ''
           exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
           exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
-          touch "${cfg.web.tsa.authorizedKeys}"
+          touch ${cfg.web.tsa.authorizedKeys}
         ''}
         ${optionalString cfg.worker.generateKeys ''
           exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.worker.tsa.workerPrivateKey}
