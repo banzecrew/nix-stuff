@@ -24,7 +24,7 @@ stdenv.mkDerivation rec {
     sha256 = "6fef8fb5d566854560c8a8c141103ea8af4a627c8d8de3ddd68dd3dd3b02ec45"; 
   };
   
-  phases = [ "unpackPhase" "installPhase" ];
+  phases = [ "unpackPhase" "installPhase" "postInstall" ];
 
   inputs = lib.optional (mode == "web" || mode == "quickstart") postgresql;
   
@@ -36,8 +36,10 @@ stdenv.mkDerivation rec {
     for item in `ls ./bin/` ; do
       patchelf --set-interpreter $(cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
     done
-    
-    mkdir -p /var/lib/concourse
+  '';
+
+  postInstall = ''
+    export PATH=$PATH:$out/bin
   '';
 
   meta = with stdenv.lib; {

@@ -306,17 +306,38 @@ let
     };
   };
 
-  webAllowedPorts = with cfg.web; [ 
-    bindPort
-    tlsBindPort
-    tsa.bindPort
-  ];
+  webStuff = {
+    ports = [ 
+      cfg.web.bindPort
+      cfg.web.tlsBindPort
+      cfg.web.tsa.bindPort
+    ];
+# говно делаю. стоит описать создание директорий/файлов и прочего на этапе старта демона, скажем, в script. проброс опций сделать только для mode (может и ненадо, подумать об этом)
+# возможно стоит оставить кастоным только путь к рабочей директории, остальное оставить над ней а-ля ${workDir}/{keys,certs,volumes,configs}
+    dirs = [
+      cfg.web.keysDir
+      cfg.web.cliArtifactsDir
+      cfg.web.credentials.vault.caPath
+    ];
+  };
 
-  workerAllowedPorts = with cfg.worker; [
-    bindPort
-    healthcheckBindPort
-    baggageclaim.bindPort
-  ];
+  workerStuff = {
+    ports = [
+      cfg.worker.bindPort
+      cfg.worker.healthcheckBindPort
+      cfg.worker.baggageclaim.bindPort
+    ];
+
+    dirs = [
+      cfg.worker.keysDir
+      cfg.worker.workDir
+      cfg.worker.certsDir
+    ];
+
+    files = [
+      cfg.worker.garden.gardenConfig
+    ];
+  };
 
 
 in
@@ -355,7 +376,7 @@ in
         type = bool;
         default = true;
         description = ''
-          Open ports in the firewall for the Concourse web/worker.
+          Open ports in the firewall for the Concourse web/worker (without debug ports).
         '';
       };
       
@@ -408,6 +429,7 @@ in
 
         tlsBindPort = mkOption {
           type = int;
+          default = 8084
           description = "Port on which to listen for HTTPS traffic.";
         };
 
@@ -2090,9 +2112,15 @@ in
           description = "Generate SSH keys.";
         };
 
+        workDir = mkOption {
+          type = str;
+          default = "/var/lib/concourse/worker/";
+          description = "Directory in which to place container data.";
+        };
+
         keysDir = mkOption {
           type = str;
-          default = "/var/lib/concourse/worker/keys/";
+          default = cfg.worker.workDir + "keys";
           description = "Directory in which keys will be stored.";
         };
 
@@ -2142,15 +2170,9 @@ in
         };
 
         certsDir = mkOption {
-          type = path; 
-          default = /var/lib/concourse/certs;
+          type = str; 
+          default = cfg.worker.workDir + "certs";
           description = "Directory to use when creating the resource certificates volume.";
-        };
-
-        workDir = mkOption {
-          type = path;
-          default = /var/lib/concourse/worker;
-          description = "Directory in which to place container data.";
         };
 
         bindIp = mkOption {
@@ -2249,7 +2271,7 @@ in
 
         resourceTypes = mkOption {
           type = path;
-          default = /var/lib/resource-types;
+          default = cfg.worker.workDir + "resource-types";
           description = ''
             Path to directory containing resource types the worker should advertise.
           '';
@@ -2308,6 +2330,7 @@ in
 
           gardenConfig = mkOption {
             type = str;
+            default = cfg.worker.workDir + "config.ini"
             description = "Path to a config file to use for Garden.";
           };
 
@@ -2363,7 +2386,7 @@ in
           };
 
           volumes = mkOption {
-            type = path;
+            type = str;
             description = ''
               Directory in which to place volume data.
             '';
@@ -2395,7 +2418,8 @@ in
           };
 
           overlaysDir = mkOption {
-            type = path;
+            type = str;
+            default = cfg.worker.workDir + "overlays"
             description = ''
               Path to directory in which to store overlay data.
             '';
@@ -2416,9 +2440,9 @@ in
   config = mkIf cfg.enable {
     networking.firewall = mkIf cfg.openFirewall {
       allowedTCPPorts = flatten (
-        (optional (cfg.mode == "web") webAllowedPorts)
-        (optional (cfg.mode == "worker") workerAllowedPorts)
-        (optional (cfg.mode == "quickstart") (webAllowedPorts ++ workerAllowedPorts))
+        (optional (cfg.mode == "web") webStuff.ports)
+        (optional (cfg.mode == "worker") workerStuff.ports)
+        (optional (cfg.mode == "quickstart") (webStuff.ports ++ workerStuff.ports))
       );
     };
 
@@ -2429,7 +2453,8 @@ in
       wantedBy = ["multi-user.target"];
       
       requires = [(
-        if cfg.mode == "web" || cfg.mode == "quickstart"
+        if cfg.mode == "web" || cfg.mode == "quickstart" &&
+          cfg.web.postgresql.pgHost == "127.0.0.1"
         then "postgresql.service" else ""
       )];
 
@@ -2437,10 +2462,12 @@ in
         "networking.target"
       ] ++ requires;
 
+      preStart = '' '';
+
       environment = {
 
       } // (if cfg.mode == "web"
-            then
+            thencfg.web.postgresql.pgHost;
               mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) envOptions.web
             else if (cfg.mode == "worker" || cfg.mode == "land-worker" || cfg.mode == "retire-worker")
             then
