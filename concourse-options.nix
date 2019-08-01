@@ -315,6 +315,7 @@ let
 # говно делаю. стоит описать создание директорий/файлов и прочего на этапе старта демона, скажем, в script. проброс опций сделать только для mode (может и ненадо, подумать об этом)
 # возможно стоит оставить кастоным только путь к рабочей директории, остальное оставить над ней а-ля ${workDir}/{keys,certs,volumes,configs}
     dirs = [
+      cfg.web.webDir
       cfg.web.keysDir
       cfg.web.cliArtifactsDir
       cfg.web.credentials.vault.caPath
@@ -389,9 +390,15 @@ in
           description = "Generate SSH/RSA keys";
         };
 
+        webDir = mkOption {
+          type = str;
+          default = "/var/lib/concourse/web/"
+          description = "Root dir of web";
+        };
+
         keysDir = mkOption {
           type = str;
-          default = "/var/lib/concourse/web/keys/";
+          default = webDir + "keys";
           description = "Directory in which keys will be stored.";
         };
 

@@ -39,7 +39,7 @@ stdenv.mkDerivation rec {
   '';
 
   postInstall = ''
-    export PATH=$PATH:$out/bin
+    export PATH=$out/bin:$PATH
   '';
 
   meta = with stdenv.lib; {
