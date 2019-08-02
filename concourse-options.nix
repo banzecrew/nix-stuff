@@ -393,7 +393,7 @@ in
 
         webDir = mkOption {
           type = str;
-          default = "/var/lib/concourse/web/"
+          default = "/var/lib/concourse/web/";
           description = "Root dir of web";
         };
 
@@ -437,7 +437,7 @@ in
 
         tlsBindPort = mkOption {
           type = int;
-          default = 8084
+          default = 8084;
           description = "Port on which to listen for HTTPS traffic.";
         };
 
@@ -2277,7 +2277,7 @@ in
           '';
         };
 
-        resourceTypes = mkOption {
+        pesresourceTy = mkOption {
           type = path;
           default = cfg.worker.workDir + "resource-types";
           description = ''
@@ -2338,7 +2338,7 @@ in
 
           gardenConfig = mkOption {
             type = str;
-            default = cfg.worker.workDir + "config.ini"
+            default = cfg.worker.workDir + "config.ini";
             description = "Path to a config file to use for Garden.";
           };
 
@@ -2427,7 +2427,7 @@ in
 
           overlaysDir = mkOption {
             type = str;
-            default = cfg.worker.workDir + "overlays"
+            default = cfg.worker.workDir + "overlays";
             description = ''
               Path to directory in which to store overlay data.
             '';
@@ -2461,8 +2461,8 @@ in
       wantedBy = ["multi-user.target"];
       
       requires = [(
-        if cfg.mode == "web" || cfg.mode == "quickstart" &&
-          cfg.web.postgresql.pgHost == "127.0.0.1"
+        if (cfg.mode == "web" || cfg.mode == "quickstart" &&
+          cfg.web.postgresql.pgHost == "127.0.0.1")
         then "postgresql.service" else ""
       )];
 
@@ -2480,17 +2480,20 @@ in
           fi
         ''}
         ${optionalString cfg.worker.generateKeys ''
-          if [[ ! -e ${cfg.worker.tsa.workerPrivateKey} ]]
-          then
+          if [[ ! -e ${cfg.worker.tsa.workerPrivateKey} ]]; then
             exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.worker.tsa.workerPrivateKey}
           fi
-        ''} 
+        ''}
+
+        if [[ ! -d ${cfg.worker.resourceTypes} ]]; then
+          cp -r ${cfg.package}/resource-types ${cfg.worker.resourceTypes}
+        fi
       '';
 
       environment = {
 
       } // (if cfg.mode == "web"
-            then cfg.web.postgresql.pgHost;
+            then
               mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) envOptions.web
             else if (cfg.mode == "worker" || cfg.mode == "land-worker" || cfg.mode == "retire-worker")
             then
