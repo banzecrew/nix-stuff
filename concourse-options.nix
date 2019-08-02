@@ -330,6 +330,7 @@ let
     ];
 
     dirs = [
+      cfg.worker.resourceTypes
       cfg.worker.keysDir
       cfg.worker.workDir
       cfg.worker.certsDir
@@ -739,13 +740,13 @@ in
 
           hostKey = mkOption {
             type = str;
-            default = cfg.web.keysDir + "tsa_host_key";
+            default = if cfg.web.generateKeys then (cfg.web.keysDir + "tsa_host_key") else "";
             description = "Path to private key to use for the SSH server.";
           };
 
           authorizedKeys = mkOption {
             type = str;
-            default = cfg.web.keysDir + "authorized_worker_keys";
+            default = if cfg.web.generateKeys then (cfg.web.keysDir + "authorized_worker_keys") else "";
             description = ''
               Path to file containing keys to authorize, 
               in SSH authorized_keys format.
@@ -1526,7 +1527,7 @@ in
 
           sessionSignKey = mkOption {
             type = path;
-            default = cfg.web.keysDir + "session_signing_key";
+            default = if cfg.web.generateKeys then  (cfg.web.keysDir + "session_signing_key") else "";
             description = ''
               File containing an RSA private key, used to sign auth tokens.
             '';
@@ -2307,7 +2308,7 @@ in
 
           publicKey = mkOption {
             type = str;
-            default = cfg.worker.keysDir + "tsa_host_key.pub";
+            default = if cfg.worker.generateKeys then (cfg.worker.keysDir + "tsa_host_key.pub") else "";
             description = ''
               File containing a public key to expect from the TSA.
             '';
@@ -2315,7 +2316,7 @@ in
 
           workerPrivateKey = mkOption {
             type = str;
-            default = cfg.worker.keysDir + "worker_key";
+            default = if cfg.worker.generateKeys then (cfg.worker.keysDir + "worker_key") else "";
             description = ''
               File containing the private key to use when authenticating to the TSA.
             '';
@@ -2469,12 +2470,27 @@ in
         "networking.target"
       ] ++ requires;
 
-      preStart = '' '';
+      preStart = ''
+        ${optionalString cfg.web.generateKeys ''
+          if [[ ! -e ${cfg.web.authentication.sessionSignKey} ]] && [[ ! -e ${cfg.web.tsa.hostKey} ]]
+          then
+            exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
+            exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
+            touch ${cfg.web.tsa.authorizedKeys}
+          fi
+        ''}
+        ${optionalString cfg.worker.generateKeys ''
+          if [[ ! -e ${cfg.worker.tsa.workerPrivateKey} ]]
+          then
+            exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.worker.tsa.workerPrivateKey}
+          fi
+        ''} 
+      '';
 
       environment = {
 
       } // (if cfg.mode == "web"
-            thencfg.web.postgresql.pgHost;
+            then cfg.web.postgresql.pgHost;
               mapAttrs' (n: v: nameValuePair "CONCOURSE_${n}" (toString v)) envOptions.web
             else if (cfg.mode == "worker" || cfg.mode == "land-worker" || cfg.mode == "retire-worker")
             then
@@ -2484,14 +2500,6 @@ in
            );
 
       script = ''
-        ${optionalString cfg.web.generateKeys ''
-          exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
-          exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
-          touch ${cfg.web.tsa.authorizedKeys}
-        ''}
-        ${optionalString cfg.worker.generateKeys ''
-          exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.worker.tsa.workerPrivateKey}
-        ''}
         exec ${cfg.package}/bin/concourse ${cfg.mode}
       '';
     };
