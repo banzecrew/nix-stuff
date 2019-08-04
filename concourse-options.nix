@@ -312,8 +312,6 @@ let
       cfg.web.tlsBindPort
       cfg.web.tsa.bindPort
     ];
-# говно делаю. стоит описать создание директорий/файлов и прочего на этапе старта демона, скажем, в script. проброс опций сделать только для mode (может и ненадо, подумать об этом)
-# возможно стоит оставить кастоным только путь к рабочей директории, остальное оставить над ней а-ля ${workDir}/{keys,certs,volumes,configs}
     dirs = [
       cfg.web.webDir
       cfg.web.keysDir
@@ -328,14 +326,12 @@ let
       cfg.worker.healthcheckBindPort
       cfg.worker.baggageclaim.bindPort
     ];
-
     dirs = [
       cfg.worker.resourceTypes
       cfg.worker.keysDir
       cfg.worker.workDir
       cfg.worker.certsDir
     ];
-
     files = [
       cfg.worker.garden.gardenConfig
     ];
@@ -2445,6 +2441,11 @@ in
     };
   };
 
+# возможно стоит оставить кастоным только путь к рабочей директории, остальное оставить над ней а-ля ${workDir}/{keys,certs,volumes,configs}
+/*
+  возможно стоит добавить контекст, т.к. сейчас в каждой опции приходится делать повторяющиеся проверки на режим работы
+  что довольно неудобно и в целом не очень читабельно
+*/
   config = mkIf cfg.enable {
     networking.firewall = mkIf cfg.openFirewall {
       allowedTCPPorts = flatten (
@@ -2471,14 +2472,21 @@ in
       ] ++ requires;
 
       preStart = ''
-        ${optionalString cfg.web.generateKeys ''
-          if [[ ! -e ${cfg.web.authentication.sessionSignKey} ]] && [[ ! -e ${cfg.web.tsa.hostKey} ]]
-          then
-            exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
-            exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
-            touch ${cfg.web.tsa.authorizedKeys}
-          fi
+        ${optionalString (cfg.mode == "web" || cfg.mode == "quickstart") ''
+          mkdir -p ${cfg.web.webDir} ${cfg.web.keysDir}
         ''}
+        ${optionalString (cfg.mode != "web" && cfg.mode != "quickstart") ''
+          mkdir -p ${cfg.worker.workDir} ${cfg.worker.keysDir} ${cfg.worker.certsDir}
+        ''}
+          ${optionalString cfg.web.generateKeys ''
+            if [[ ! -e ${cfg.web.authentication.sessionSignKey} ]] && [[ ! -e ${cfg.web.tsa.hostKey} ]]
+            then
+              exec ${cfg.package}/bin/concourse generate-key -t rsa -f ${cfg.web.authentication.sessionSignKey}
+              exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.web.tsa.hostKey}
+              touch ${cfg.web.tsa.authorizedKeys}
+            fi
+          ''}
+  
         ${optionalString cfg.worker.generateKeys ''
           if [[ ! -e ${cfg.worker.tsa.workerPrivateKey} ]]; then
             exec ${cfg.package}/bin/concourse generate-key -t ssh -f ${cfg.worker.tsa.workerPrivateKey}
@@ -2505,6 +2513,11 @@ in
       script = ''
         exec ${cfg.package}/bin/concourse ${cfg.mode}
       '';
+
+      serviceConfig = {
+        ExecStart = "${cfg.package}/bin/concourse ${cfg.mode}";
+      };
+
     };
   };
 }
