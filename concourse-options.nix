@@ -2444,7 +2444,7 @@ in
 # возможно стоит оставить кастоным только путь к рабочей директории, остальное оставить над ней а-ля ${workDir}/{keys,certs,volumes,configs}
 /*
   возможно стоит добавить контекст, т.к. сейчас в каждой опции приходится делать повторяющиеся проверки на режим работы
-  что довольно неудобно и в целом не очень читабельно
+  что довольно неудобно и не очень читабельно
 */
   config = mkIf cfg.enable {
     networking.firewall = mkIf cfg.openFirewall {
@@ -2516,8 +2516,9 @@ in
 
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/concourse ${cfg.mode}";
+        ExecStop = "pidof concourse | xargs kill -TERM";
+        ExecReload = "pidof concourse | xargs kill -HUP";
       };
-
     };
   };
 }
