@@ -2463,10 +2463,10 @@ in
       wantedBy = ["multi-user.target"];
       
       requires = let
-        p = cfg.web.postgresql.pgHost;
-        isPgLocal = (p == "127.0.0.1" || p == "localhost");
+        pg = cfg.web.postgresql.pgHost;
+        isPgLocal = (pg == "127.0.0.1" || pg == "localhost");
       in
-        optional (isPgLocal) "postgresql.service"
+        optional (isPgLocal) "postgresql.service";
 
 
       after = [
