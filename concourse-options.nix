@@ -2464,7 +2464,7 @@ in
       
       requires = let
         p = cfg.web.postgresql.pgHost;
-        isPgLocal = (p == "127.0.0.1" || p = "localhost");
+        isPgLocal = (p == "127.0.0.1" || p == "localhost");
       in
         optional (isPgLocal) "postgresql.service"
 
