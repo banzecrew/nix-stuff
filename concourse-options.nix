@@ -802,7 +802,8 @@ in
         postgresql = {
           pgHost = mkOption {
             type = str;
-            default = "127.0.0.1";
+            example = "127.0.0.1";
+            default = "";
             description = "The host to connect to.";
           };
 
@@ -2461,11 +2462,12 @@ in
       description = "Concourse service daemon";
       wantedBy = ["multi-user.target"];
       
-      requires = [(
-        if (cfg.mode == "web" || cfg.mode == "quickstart" &&
-          cfg.web.postgresql.pgHost == "127.0.0.1")
-        then "postgresql.service" else ""
-      )];
+      requires = let
+        p = cfg.web.postgresql.pgHost;
+        isPgLocal = (p == "127.0.0.1" || p = "localhost");
+      in
+        optional (isPgLocal) "postgresql.service"
+
 
       after = [
         "networking.target"
