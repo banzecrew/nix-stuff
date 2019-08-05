@@ -2476,7 +2476,7 @@ in
           mkdir -p ${cfg.web.webDir} ${cfg.web.keysDir}
         ''}
         ${optionalString (cfg.mode != "web" && cfg.mode != "quickstart") ''
-          mkdir -p ${cfg.worker.workDir} ${cfg.worker.keysDir} ${cfg.worker.certsDir}
+          mkdir -p ${cfg.worker.workDir} ${cfg.worker.keysDir} ${cfg.worker.certsDir} ${cfg.worker.baggageclaim.volumes}
         ''}
           ${optionalString cfg.web.generateKeys ''
             if [[ ! -e ${cfg.web.authentication.sessionSignKey} ]] && [[ ! -e ${cfg.web.tsa.hostKey} ]]
@@ -2509,11 +2509,11 @@ in
             else 
               (mapAttrs' (n: v: nameValuePair "CONCOURSE_WORKER_${n}" (toString v)) (envOptions.worker)) // envOptions.web
            );
-
+/*
       script = ''
         exec ${cfg.package}/bin/concourse ${cfg.mode}
       '';
-
+*/
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/concourse ${cfg.mode}";
         ExecStop = "pidof concourse | xargs kill -TERM";
