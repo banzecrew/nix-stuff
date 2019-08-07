@@ -1,18 +1,11 @@
 { 
   stdenv, 
   fetchurl,
-  pkgs,
-  lib,
-  mode ? "web"
+  pkgs ? <nixpkgs>,
+  lib
 }:
 
 with pkgs;
-
-let
-  
-
-in
-
 
 stdenv.mkDerivation rec {
   name = "concourse-${version}";
@@ -23,7 +16,8 @@ stdenv.mkDerivation rec {
     url = "https://github.com/concourse/concourse/releases/download/v${version}/${name}-${platform}.tgz";
     sha256 = "6fef8fb5d566854560c8a8c141103ea8af4a627c8d8de3ddd68dd3dd3b02ec45"; 
   };
-  
+
+  outputs = [  "bin" ];
   phases = [ "unpackPhase" "installPhase" ];
 
   inputs = "";

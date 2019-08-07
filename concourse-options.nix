@@ -2442,11 +2442,6 @@ in
     };
   };
 
-# возможно стоит оставить кастоным только путь к рабочей директории, остальное оставить над ней а-ля ${workDir}/{keys,certs,volumes,configs}
-/*
-  возможно стоит добавить контекст, т.к. сейчас в каждой опции приходится делать повторяющиеся проверки на режим работы
-  что довольно неудобно и не очень читабельно
-*/
   config = mkIf cfg.enable {
     networking.firewall = mkIf cfg.openFirewall {
       allowedTCPPorts = flatten (
@@ -2511,12 +2506,8 @@ in
             else 
               (mapAttrs' (n: v: nameValuePair "CONCOURSE_WORKER_${n}" (toString v)) (envOptions.worker)) // envOptions.web
            );
-/*
-      script = ''
-        exec ${cfg.package}/bin/concourse ${cfg.mode}
-      '';
-*/
-      serviceConfig = {
+
+      serviceConfig = { 
         ExecStart = "${cfg.package}/bin/concourse ${cfg.mode}";
         ExecStop = "pidof concourse | xargs kill -TERM";
         ExecReload = "pidof concourse | xargs kill -HUP";
