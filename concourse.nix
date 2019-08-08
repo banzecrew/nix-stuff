@@ -1,14 +1,11 @@
 { 
   stdenv, 
   fetchurl,
-  pkgs,
-  lib,
-  mode ? "web"
+  pkgs ? <nixpkgs>,
+  lib
 }:
 
-
 with pkgs;
-
 
 stdenv.mkDerivation rec {
   name = "concourse-${version}";
@@ -19,18 +16,22 @@ stdenv.mkDerivation rec {
     url = "https://github.com/concourse/concourse/releases/download/v${version}/${name}-${platform}.tgz";
     sha256 = "6fef8fb5d566854560c8a8c141103ea8af4a627c8d8de3ddd68dd3dd3b02ec45"; 
   };
-  
+
+  outputs = [  "bin" ];
   phases = [ "unpackPhase" "installPhase" ];
 
-  inputs = [ (if "${mode}" == "web" then postgresql else "") ];
+  inputs = "";
   
-  installPhase = ''
-    ${coreutils}/bin/cp -rva . $out
-    ${gnutar}/bin/tar -zxf $out/fly-assets/fly-${platform}.tgz -C $out/bin
 
-    for item in `${coreutils}/bin/ls ./bin/` ; do
-      ${patchelf}/bin/patchelf --set-interpreter $(${coreutils}/bin/cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
+  installPhase = ''
+    cp -rva . $out
+    tar -zxf $out/fly-assets/fly-${platform}.tgz -C $out/bin
+
+    for item in `ls ./bin/` ; do
+      patchelf --set-interpreter $(cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
+      ln -s $out/bin/$item 
     done
+    export PATH=$out/bin:$PATH
   '';
 
     postInstall = ''
