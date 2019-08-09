@@ -7,6 +7,9 @@
 
 with pkgs;
 
+### TODO:
+# 1. Add binaries to the PATH
+
 stdenv.mkDerivation rec {
   name = "concourse-${version}";
   platform = "linux-amd64";
@@ -31,12 +34,8 @@ stdenv.mkDerivation rec {
       patchelf --set-interpreter $(cat ${stdenv.cc}/nix-support/dynamic-linker) $out/bin/$item
       ln -s $out/bin/$item 
     done
-    export PATH=$out/bin:$PATH
   '';
 
-    postInstall = ''
-      
-    '';
 
 
   meta = with stdenv.lib; {
